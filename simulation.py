@@ -2,18 +2,17 @@ from node import Node
 
 
 class Simulacion:
-    def __init__(self, cant_proponentes: int, nodes: list[str], ids: list[str]):
+    def __init__(self, cant_proponentes: int, nodes: list[Node]):
         self.cant_proponentes = cant_proponentes
-        self.nodos = [Node(id=id, nombre=node) for node, id in zip(nodes, ids)]
+        self.nodos = nodes
         self.nodos.sort(key=lambda node: node.id, reverse=True)
         self.bd: dict[str, str | int] = {}
         self.logs: list[str] = []
 
-    def clonar(self):  # TODO: nodos se resetean o se copian?
+    def clonar(self):
         nueva_simulacion = Simulacion(
             self.cant_proponentes,
-            [node.nombre for node in self.nodos],
-            [node.id for node in self.nodos],
+            [nodo.clonar() for nodo in self.nodos]
         )
         nueva_simulacion.bd = self.bd.copy()
         nueva_simulacion.logs = self.logs.copy()

@@ -5,6 +5,7 @@ import sys
 import typing, os, pathlib, math, re, collections
 
 from simulation import Simulacion
+from node import Node
 
 
 def remove_comments(line: str) -> str:
@@ -23,8 +24,6 @@ if __name__ == "__main__":
         print("Uso: python3 main.py [PATH_TO_INPUT_FILE]")
         sys.exit(1)
 
-    print(sys.argv)
-
     path = sys.argv[1]
     name_without_extension = os.path.splitext(os.path.basename(path))[0]
 
@@ -42,7 +41,8 @@ if __name__ == "__main__":
         line3 = input_file.readline().strip()
         ids = remove_comments(line3).split(";")
 
-        simulacion_inicial = Simulacion(cant_proponents, nodos, ids)
+        nodos = [Node(id=id, nombre=node) for node, id in zip(nodos, ids)]
+        simulacion_inicial = Simulacion(cant_proponents, nodos)
         simulacion_inicial.ejecutar_bully()
         simulaciones.append(simulacion_inicial)
 
@@ -52,11 +52,10 @@ if __name__ == "__main__":
             if not line:
                 continue
 
-            print(f"Processing line: {line}")
             es_bifurcacion = line.startswith("*")
             command, *args = line.lstrip("*").split(";")
 
-            print(f"Command: {command}, Args: {args}, Bifurcation: {es_bifurcacion}")
+            print(f"\nCommand: {command}, Args: {args}, Bifurcation: {es_bifurcacion}")
             if command == "Log":
                 hizo_log = True
                 variable = args[0]

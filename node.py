@@ -35,6 +35,20 @@ class Node:
         self.id_aceptada = None
         self.comando_aceptado = None
 
+    def clonar(self):
+        nuevo_nodo = Node(self.id, self.nombre)
+        nuevo_nodo.esta_activo = self.esta_activo
+        nuevo_nodo.es_proponente = self.es_proponente
+        nuevo_nodo.id_prepare_mas_alta = self.id_prepare_mas_alta
+        nuevo_nodo.id_aceptada = self.id_aceptada
+        nuevo_nodo.comando_aceptado = self.comando_aceptado
+        nuevo_nodo.id_propuesta_activa = self.id_propuesta_activa
+        nuevo_nodo.comando_propuesta = self.comando_propuesta
+        nuevo_nodo.cant_nodos_prepare = self.cant_nodos_prepare
+        nuevo_nodo.id_aceptado_viejo = self.id_aceptado_viejo
+        nuevo_nodo.comando_aceptado_viejo = self.comando_aceptado_viejo
+        return nuevo_nodo
+
     # Proponente
     def empezar_prepare(self, id_propuesta: int):
         if not self.es_proponente:
