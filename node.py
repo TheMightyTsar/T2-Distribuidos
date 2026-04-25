@@ -1,5 +1,5 @@
 class Node:
-    def __init__(self, id: str, nombre: str):
+    def __init__(self, id: int, nombre: str):
         self.id = id
         self.nombre = nombre
         self.esta_activo = True

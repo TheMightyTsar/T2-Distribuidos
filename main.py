@@ -37,11 +37,13 @@ if __name__ == "__main__":
 
         line2 = input_file.readline().strip()
         nodos = remove_comments(line2).split(";")
+        nodos_validos = set(nodos)
 
         line3 = input_file.readline().strip()
         ids = remove_comments(line3).split(";")
 
-        nodos = [Node(id=id, nombre=node) for node, id in zip(nodos, ids)]
+        nodos = [Node(id=int(id), nombre=node) for node, id in zip(nodos, ids)]
+        nodos.sort(key=lambda node: node.id, reverse=True)
         simulacion_inicial = Simulacion(cant_proponents, nodos)
         simulacion_inicial.ejecutar_bully()
         simulaciones.append(simulacion_inicial)
@@ -68,8 +70,15 @@ if __name__ == "__main__":
                 log(name_without_extension, f"{variable}={str(valores)}")
                 continue
 
-            # TODO: Si un evento de la simulación utiliza uno o más nodos que no se encuentran definidos, ese evento es totalmente ignorado. En caso de que dicho evento sea una bifurcación, no se debe realizar el proceso de bifurcar y se debe continuar con el siguiente evento.
-            # Validar aca
+            # Validar nodos
+            nodos_involucrados = []
+            if command in ("Prepare", "Accept") and len(args) > 0:
+                nodos_involucrados.append(args[0])
+            elif command in ("Stop", "Start"):
+                nodos_involucrados.extend(args)
+
+            if not all(nodo in nodos_validos for nodo in nodos_involucrados):
+                continue
 
             if es_bifurcacion:
                 nuevas_simulaciones = []
@@ -89,6 +98,7 @@ if __name__ == "__main__":
 
     dict_variable_valores: dict[str, set[str | int]] = {}
     for simulacion in simulaciones:
+        print("Simulación con BD:", simulacion.bd)
         for variable, valor in simulacion.bd.items():
             if variable not in dict_variable_valores:
                 dict_variable_valores[variable] = set()

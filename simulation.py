@@ -5,7 +5,6 @@ class Simulacion:
     def __init__(self, cant_proponentes: int, nodes: list[Node]):
         self.cant_proponentes = cant_proponentes
         self.nodos = nodes
-        self.nodos.sort(key=lambda node: node.id, reverse=True)
         self.bd: dict[str, str | int] = {}
         self.logs: list[str] = []
 
@@ -47,8 +46,6 @@ class Simulacion:
         """
         nombre_nodo, id_propuesta = args
         nodo = self.get_nodo_by_name(nombre_nodo)
-        if not nodo:
-            return
         if not nodo.es_proponente:
             return
         id_propuesta = int(id_propuesta)
@@ -71,21 +68,23 @@ class Simulacion:
         """
         nombre_nodo, id_propuesta, comando_que_quiere = args
         nodo = self.get_nodo_by_name(nombre_nodo)
-        if not nodo:
-            return
         if not nodo.es_proponente:
+            print(f"Nodo {nombre_nodo} no es proponente. Ignorando evento Accept.")
             return
         id_propuesta = int(id_propuesta)
         if nodo.id_propuesta_activa != id_propuesta:
+            print(f"Nodo {nombre_nodo} no tiene una propuesta activa con id {id_propuesta}. Ignorando evento Accept.")
             return
 
         if not self.has_quorum(nodo.cant_nodos_prepare):
+            print(f"Nodo {nombre_nodo} no alcanzó quorum para propuesta {id_propuesta}. Ignorando evento Accept.")
             return
 
         comando_final = comando_que_quiere
         if nodo.comando_aceptado_viejo is not None:
             comando_final = nodo.comando_aceptado_viejo
 
+        print("Proponente", nodo.nombre, "emite Accept con comando final:", comando_final)
         for otro_nodo in self.nodos:
             if otro_nodo.es_proponente:
                 continue
@@ -93,8 +92,6 @@ class Simulacion:
 
     def procesar_stop(self, args: list[str]):
         nodos = args
-        if not self.are_all_nodes_valid(nodos):
-            return
         for nodo in self.nodos:
             if nodo.nombre in nodos:
                 nodo.esta_activo = False
@@ -102,8 +99,6 @@ class Simulacion:
 
     def procesar_start(self, args: list[str]):
         nodos = args
-        if not self.are_all_nodes_valid(nodos):
-            return
 
         proponentes_activos = len(self.get_proponentes_activos())
         for nodo in self.nodos:
@@ -148,15 +143,11 @@ class Simulacion:
     def get_proponentes_activos(self):
         return [nodo for nodo in self.nodos if nodo.es_proponente and nodo.esta_activo]
 
-    def get_nodo_by_name(self, name: str) -> Node | None:
+    def get_nodo_by_name(self, name: str):
         for node in self.nodos:
             if node.nombre == name:
                 return node
-        return None
-
-    def are_all_nodes_valid(self, nodes: list[str]) -> bool:
-        node_names = (node.nombre for node in self.nodos)
-        return all(node in node_names for node in nodes)
+        raise Exception(f"Nodo con nombre {name} no encontrado.")
 
     def ejecutar_comando(self, cmd: str):
         comando, variable, *valor = cmd.split("-")
