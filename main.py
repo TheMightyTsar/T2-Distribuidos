@@ -57,7 +57,6 @@ if __name__ == "__main__":
             es_bifurcacion = line.startswith("*")
             command, *args = line.lstrip("*").split(";")
 
-            print(f"\nCommand: {command}, Args: {args}, Bifurcation: {es_bifurcacion}")
             if command == "Log":
                 hizo_log = True
                 variable = args[0]
@@ -98,7 +97,6 @@ if __name__ == "__main__":
 
     dict_variable_valores: dict[str, set[str | int]] = {}
     for simulacion in simulaciones:
-        print("Simulación con BD:", simulacion.bd)
         for variable, valor in simulacion.bd.items():
             if variable not in dict_variable_valores:
                 dict_variable_valores[variable] = set()

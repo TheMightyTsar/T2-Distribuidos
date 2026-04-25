@@ -26,9 +26,6 @@ class Simulacion:
                 node.set_proponente(True)
                 cant_proponentes_activos += 1
 
-        print("Proponentes activos después de ejecutar bully:", [nodo.nombre for nodo in self.get_proponentes_activos()])
-        print("Aceptantes activos después de ejecutar bully:", [nodo.nombre for nodo in self.get_aceptantes_activos()])
-
     def procesar_evento(self, evento: str, args: list[str]):
         if evento == "Prepare":
             self.procesar_prepare(args)
@@ -50,10 +47,8 @@ class Simulacion:
         nombre_nodo, id_propuesta = args
         nodo = self.get_nodo_by_name(nombre_nodo)
         if not nodo.esta_activo:
-            print(f"Nodo {nombre_nodo} no está activo. Ignorando evento Prepare.")
             return
         if not nodo.es_proponente:
-            print(f"Nodo {nombre_nodo} no es proponente. Ignorando evento Prepare.")
             return
         id_propuesta = int(id_propuesta)
         nodo.empezar_prepare(id_propuesta)
@@ -76,25 +71,23 @@ class Simulacion:
         nombre_nodo, id_propuesta, comando_que_quiere = args
         nodo = self.get_nodo_by_name(nombre_nodo)
         if not nodo.esta_activo:
-            print(f"Nodo {nombre_nodo} no está activo. Ignorando evento Accept.")
             return
         if not nodo.es_proponente:
-            print(f"Nodo {nombre_nodo} no es proponente. Ignorando evento Accept.")
             return
         id_propuesta = int(id_propuesta)
         if nodo.id_propuesta_activa != id_propuesta:
-            print(f"Nodo {nombre_nodo} no tiene una propuesta activa con id {id_propuesta}. Ignorando evento Accept.")
             return
 
         if not self.has_quorum(nodo.cant_nodos_prepare):
-            print(f"Nodo {nombre_nodo} no alcanzó quorum para propuesta {id_propuesta}. Ignorando evento Accept.")
             return
 
         comando_final = comando_que_quiere
-        if nodo.comando_aceptado_viejo is not None:
+        if nodo.comando_propuesta is not None:
+            comando_final = nodo.comando_propuesta
+        elif nodo.comando_aceptado_viejo is not None:
             comando_final = nodo.comando_aceptado_viejo
+        nodo.comando_propuesta = comando_final
 
-        print("Proponente", nodo.nombre, "emite Accept con comando final:", comando_final)
         for otro_nodo in self.nodos:
             if otro_nodo.es_proponente:
                 continue
@@ -143,8 +136,6 @@ class Simulacion:
 
     def has_quorum(self, cantidad: int):
         cantidad_aceptantes_activos = len(self.get_aceptantes_activos())
-        print("Hay", cantidad_aceptantes_activos, "aceptantes activos. Se necesitan más de", cantidad_aceptantes_activos / 2, "aceptaciones para alcanzar quorum.")
-        print("Cantidad de aceptaciones recibidas:", cantidad)
         return cantidad > cantidad_aceptantes_activos / 2
 
     def get_aceptantes_activos(self):
@@ -177,5 +168,3 @@ class Simulacion:
         elif comando == "DEL":
             if variable in self.bd:
                 del self.bd[variable]
-
-# TODO: Adicionalmente, una vez que el proponente emite un Accept, re-cuerda el identificador de propuesta utilizado, pudiendo reenviar mensajes Accept con ese mismo identificador. En estos reenvíos, la operación se mantiene invariante.
