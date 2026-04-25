@@ -1,5 +1,6 @@
 from node import Node
 
+
 class Simulacion:
     def __init__(self, cant_proponentes: int, nodes: list[str], ids: list[str]):
         self.cant_proponentes = cant_proponentes
@@ -8,8 +9,12 @@ class Simulacion:
         self.bd: dict[str, str | int] = {}
         self.logs: list[str] = []
 
-    def clonar(self): # TODO: nodos se resetean o se copian?
-        nueva_simulacion = Simulacion(self.cant_proponentes, [node.nombre for node in self.nodos], [node.id for node in self.nodos])
+    def clonar(self):  # TODO: nodos se resetean o se copian?
+        nueva_simulacion = Simulacion(
+            self.cant_proponentes,
+            [node.nombre for node in self.nodos],
+            [node.id for node in self.nodos],
+        )
         nueva_simulacion.bd = self.bd.copy()
         nueva_simulacion.logs = self.logs.copy()
         return nueva_simulacion
@@ -18,7 +23,9 @@ class Simulacion:
         # TODO: handle case where there are not enough active nodes to be proponents
         # TODO: if a node is already a proponente, it should keep its status unless it becomes inactive
         # Encontrar los cant_proponentes nodos con mayor ID activos y marcarlos como proponentes
-        proponentes = sum(1 for node in self.nodos if node.es_proponente and node.esta_activo)
+        proponentes = sum(
+            1 for node in self.nodos if node.es_proponente and node.esta_activo
+        )
         for node in self.nodos:
             if proponentes >= self.cant_proponentes:
                 break
@@ -39,30 +46,30 @@ class Simulacion:
             self.procesar_learn(args)
         elif evento == "Log":
             self.procesar_log(args)
-    
+
     def procesar_prepare(self, args: list[str]):
         nodo, id_propuesta = args
         if not self.are_all_nodes_valid([nodo]):
             return
-    
+
     def procesar_accept(self, args: list[str]):
-        nodo, id_propuesta, comando  = args
+        nodo, id_propuesta, comando = args
         if not self.are_all_nodes_valid([nodo]):
             return
-    
+
     def procesar_stop(self, args: list[str]):
         nodos = args
         if not self.are_all_nodes_valid(nodos):
             return
-    
+
     def procesar_start(self, args: list[str]):
         nodos = args
         if not self.are_all_nodes_valid(nodos):
             return
-    
+
     def procesar_learn(self, args: list[str]):
         pass
-    
+
     def procesar_log(self, args: list[str]):
         pass
 
