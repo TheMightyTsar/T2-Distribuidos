@@ -20,18 +20,13 @@ class Simulacion:
         return nueva_simulacion
 
     def ejecutar_bully(self):
-        # TODO: handle case where there are not enough active nodes to be proponents
-        # TODO: if a node is already a proponente, it should keep its status unless it becomes inactive
-        # Encontrar los cant_proponentes nodos con mayor ID activos y marcarlos como proponentes
-        proponentes = sum(
-            1 for node in self.nodos if node.es_proponente and node.esta_activo
-        )
+        cant_proponentes_activos = len(self.get_proponentes_activos())
         for node in self.nodos:
-            if proponentes >= self.cant_proponentes:
+            if cant_proponentes_activos >= self.cant_proponentes:
                 break
             if node.esta_activo and not node.es_proponente:
                 node.set_proponente(True)
-                proponentes += 1
+                cant_proponentes_activos += 1
 
     def procesar_evento(self, evento: str, args: list[str]):
         if evento == "Prepare":
@@ -43,9 +38,7 @@ class Simulacion:
         elif evento == "Start":
             self.procesar_start(args)
         elif evento == "Learn":
-            self.procesar_learn(args)
-        elif evento == "Log":
-            self.procesar_log(args)
+            self.procesar_learn()
 
     def procesar_prepare(self, args: list[str]):
         """
@@ -87,35 +80,74 @@ class Simulacion:
         if nodo.id_propuesta_activa != id_propuesta:
             return
 
-        # No cumple quorum
-        cantidad_nodos_activos = sum(1 for node in self.nodos if node.esta_activo)
-        cantidad_aceptantes = cantidad_nodos_activos - self.cant_proponentes
-        if nodo.cant_nodos_prepare <= cantidad_aceptantes / 2:
+        if not self.has_quorum(nodo.cant_nodos_prepare):
             return
+
+        comando_final = comando_que_quiere
+        if nodo.comando_aceptado_viejo is not None:
+            comando_final = nodo.comando_aceptado_viejo
 
         for otro_nodo in self.nodos:
             if otro_nodo.es_proponente:
                 continue
-            comando = comando_que_quiere
-            if nodo.comando_aceptado_viejo is not None:
-                comando = nodo.comando_aceptado_viejo
-            otro_nodo.responder_accept(id_propuesta, comando)
+            otro_nodo.responder_accept(id_propuesta, comando_final)
 
     def procesar_stop(self, args: list[str]):
         nodos = args
         if not self.are_all_nodes_valid(nodos):
             return
+        for nodo in self.nodos:
+            if nodo.nombre in nodos:
+                nodo.esta_activo = False
+        self.ejecutar_bully()
 
     def procesar_start(self, args: list[str]):
         nodos = args
         if not self.are_all_nodes_valid(nodos):
             return
 
-    def procesar_learn(self, args: list[str]):
-        pass
+        proponentes_activos = len(self.get_proponentes_activos())
+        for nodo in self.nodos:
+            if nodo.nombre in nodos:
+                nodo.esta_activo = True
 
-    def procesar_log(self, args: list[str]):
-        pass
+                if nodo.es_proponente:
+                    if proponentes_activos >= self.cant_proponentes:
+                        nodo.set_proponente(False)
+                    else:
+                        proponentes_activos += 1
+        self.ejecutar_bully()
+
+    def procesar_learn(self):
+        aceptantes_activos = self.get_aceptantes_activos()
+
+        votos_por_comando = {}
+        for nodo in aceptantes_activos:
+            if nodo.comando_aceptado is not None:
+                cmd = nodo.comando_aceptado
+                votos_por_comando[cmd] = votos_por_comando.get(cmd, 0) + 1
+
+        print(f"Votos por comando: {votos_por_comando}")
+
+        for cmd, votos in votos_por_comando.items():
+            if votos > (len(aceptantes_activos) / 2):
+                self.ejecutar_comando(cmd)
+            else:
+                print(f"Comando {cmd} no alcanzó quorum con {votos} votos")
+
+        for nodo in self.nodos:
+            if nodo.esta_activo:
+                nodo.resetear_estado()
+
+    def has_quorum(self, cantidad: int):
+        cantidad_aceptantes_activos = len(self.get_aceptantes_activos())
+        return cantidad > cantidad_aceptantes_activos / 2
+
+    def get_aceptantes_activos(self):
+        return [nodo for nodo in self.nodos if not nodo.es_proponente and nodo.esta_activo]
+
+    def get_proponentes_activos(self):
+        return [nodo for nodo in self.nodos if nodo.es_proponente and nodo.esta_activo]
 
     def get_nodo_by_name(self, name: str) -> Node | None:
         for node in self.nodos:
@@ -126,3 +158,24 @@ class Simulacion:
     def are_all_nodes_valid(self, nodes: list[str]) -> bool:
         node_names = (node.nombre for node in self.nodos)
         return all(node in node_names for node in nodes)
+
+    def ejecutar_comando(self, cmd: str):
+        comando, variable, *valor = cmd.split("-")
+        valor = "-".join(valor)
+        if comando == "SET":
+            if valor.isdigit():
+                valor = int(valor)
+            self.bd[variable] = valor
+        elif comando == "ADD":
+            valor_actual = self.bd.get(variable, None)
+            if valor_actual is None:
+                return self.ejecutar_comando(f"SET-{variable}-{valor}")
+            elif isinstance(valor_actual, int) and valor.isdigit():
+                self.bd[variable] = valor_actual + int(valor)
+            else:
+                self.bd[variable] = str(valor_actual) + valor
+        elif comando == "DEL":
+            if variable in self.bd:
+                del self.bd[variable]
+
+# TODO: Adicionalmente, una vez que el proponente emite un Accept, re-cuerda el identificador de propuesta utilizado, pudiendo reenviar mensajes Accept con ese mismo identificador. En estos reenvíos, la operación se mantiene invariante.

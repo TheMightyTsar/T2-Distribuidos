@@ -19,12 +19,21 @@ class Node:
         self.comando_aceptado_viejo: str | None = None
 
     def set_proponente(self, status: bool):
-        self.es_proponente = status
-        self.clear_status()  # TODO: el estado solo se resetea si hay un cambio de proponente a no proponente o viceversa, no cada vez que se llama a set_proponente
+        estado_viejo, self.es_proponente = self.es_proponente, status
+        if estado_viejo != status:
+            self.resetear_estado()
 
-    def clear_status(self):
-        self.esta_activo = True
-        self.es_proponente = False
+    def resetear_estado(self):
+        # Proponente
+        self.id_propuesta_activa = None
+        self.comando_propuesta = None
+        self.cant_nodos_prepare = 0
+        self.id_aceptado_viejo = None
+        self.comando_aceptado_viejo = None
+        # Aceptante
+        self.id_prepare_mas_alta = None
+        self.id_aceptada = None
+        self.comando_aceptado = None
 
     # Proponente
     def empezar_prepare(self, id_propuesta: int):

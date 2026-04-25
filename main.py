@@ -10,6 +10,13 @@ from simulation import Simulacion
 def remove_comments(line: str) -> str:
     return line.split("#")[0].strip()
 
+def log(name_without_extension: str, message: str, clear_previous: bool = False):
+    path = os.path.join("logs", f"{name_without_extension}_LOG.txt")
+    if clear_previous and os.path.exists(path):
+        os.remove(path)
+    with open(path, "a", encoding="utf-8") as log_file:
+        log_file.write(message + "\n")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -21,13 +28,11 @@ if __name__ == "__main__":
     path = sys.argv[1]
     name_without_extension = os.path.splitext(os.path.basename(path))[0]
 
-    with open(
-        os.path.join("logs", f"{name_without_extension}_LOG.txt"), "w"
-    ) as log_file:
-        pass
+    log(name_without_extension, "LOGS", clear_previous=True)
 
     simulaciones: list[Simulacion] = []
-    with open(path, "r") as input_file:
+    hizo_log = False
+    with open(path, "r", encoding="utf-8") as input_file:
         line1 = input_file.readline().strip()
         cant_proponents = int(remove_comments(line1))
 
@@ -52,6 +57,21 @@ if __name__ == "__main__":
             command, *args = line.lstrip("*").split(";")
 
             print(f"Command: {command}, Args: {args}, Bifurcation: {es_bifurcacion}")
+            if command == "Log":
+                hizo_log = True
+                variable = args[0]
+
+                valores = []
+                for simulacion in simulaciones:
+                    valor = simulacion.bd.get(variable, None)
+                    if valor is not None and valor not in valores:
+                        valores.append(valor)
+                log(name_without_extension, f"{variable}={str(valores)}")
+                continue
+
+            # TODO: Si un evento de la simulación utiliza uno o más nodos que no se encuentran definidos, ese evento es totalmente ignorado. En caso de que dicho evento sea una bifurcación, no se debe realizar el proceso de bifurcar y se debe continuar con el siguiente evento.
+            # Validar aca
+
             if es_bifurcacion:
                 nuevas_simulaciones = []
                 for simulacion in simulaciones:
@@ -62,3 +82,19 @@ if __name__ == "__main__":
             else:
                 for simulacion in simulaciones:
                     simulacion.procesar_evento(command, args)
+
+    if not hizo_log:
+        log(name_without_extension, "No hubo logs")
+
+    log(name_without_extension, "BASE DE DATOS")
+
+    dict_variable_valores: dict[str, set[str | int]] = {}
+    for simulacion in simulaciones:
+        for variable, valor in simulacion.bd.items():
+            if variable not in dict_variable_valores:
+                dict_variable_valores[variable] = set()
+            dict_variable_valores[variable].add(valor)
+    for variable, valores in dict_variable_valores.items():
+        log(name_without_extension, f"{variable}={str(list(valores))}")
+    if not dict_variable_valores:
+        log(name_without_extension, "No hay datos")
