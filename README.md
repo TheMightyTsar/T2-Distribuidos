@@ -22,3 +22,8 @@ A continuación se deja un pequeño _template_ para completar con 1 caso.
 
 **Uso**: Aquí explico cómo fue utilizada la respuesta de la IA. No es necesario incluir la respuesta de ella, pero si entender cómo fue su integración. Por ejemplo: para corregir código, crear _tests_, entender alguna parte del enunciado, contrastar código realizado con enunciado, entender qué hace algún fragmento de código, entender el error que sañe, encontrar la causa de algún error en el código, encontrar casos bordes donde falla el código, etc. Lo importante es poder entender qué se hizo con la respuesta que la IA entregó a la instrucción antes señalada.
 
+## Ejecución de código
+
+```bash
+python3 main.py tests_publicos/test_01.txt
+```
