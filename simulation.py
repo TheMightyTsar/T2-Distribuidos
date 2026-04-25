@@ -48,14 +48,58 @@ class Simulacion:
             self.procesar_log(args)
 
     def procesar_prepare(self, args: list[str]):
-        nodo, id_propuesta = args
-        if not self.are_all_nodes_valid([nodo]):
+        """
+        El proponente se comunica con los aceptantes activos y evalúa sus respuestas: aceptación,
+        rechazo, ausencia de respuesta por nodo caído (equivale a rechazo) o aceptación condicionada
+        según Paxos.
+        """
+        nombre_nodo, id_propuesta = args
+        nodo = self.get_nodo_by_name(nombre_nodo)
+        if not nodo:
             return
+        if not nodo.es_proponente:
+            return
+        id_propuesta = int(id_propuesta)
+        nodo.empezar_prepare(id_propuesta)
+
+        # Envia el mensaje a los aceptantes
+        for otro_nodo in self.nodos:
+            if otro_nodo.es_proponente:
+                continue
+            acepta, id_aceptada, comando_aceptado = otro_nodo.responder_prepare(id_propuesta)
+            if acepta:
+                nodo.aceptar_prepare(id_aceptada, comando_aceptado)
 
     def procesar_accept(self, args: list[str]):
-        nodo, id_propuesta, comando = args
-        if not self.are_all_nodes_valid([nodo]):
+        """
+        Envía una operación a los aceptantes activos. Solo es válido si el proponente
+        ejecutó previamente un Prepare con el mismo identificador y obtuvo las aceptaciones
+        necesarias según el consenso. La operación debe cumplir las reglas de Paxos: puede ser la
+        indicada en el mismo evento o una previamente aceptada por algún aceptante.
+        """
+        nombre_nodo, id_propuesta, comando_que_quiere = args
+        nodo = self.get_nodo_by_name(nombre_nodo)
+        if not nodo:
             return
+        if not nodo.es_proponente:
+            return
+        id_propuesta = int(id_propuesta)
+        if nodo.id_propuesta_activa != id_propuesta:
+            return
+
+        # No cumple quorum
+        cantidad_nodos_activos = sum(1 for node in self.nodos if node.esta_activo)
+        cantidad_aceptantes = cantidad_nodos_activos - self.cant_proponentes
+        if nodo.cant_nodos_prepare <= cantidad_aceptantes / 2:
+            return
+
+        for otro_nodo in self.nodos:
+            if otro_nodo.es_proponente:
+                continue
+            comando = comando_que_quiere
+            if nodo.comando_aceptado_viejo is not None:
+                comando = nodo.comando_aceptado_viejo
+            otro_nodo.responder_accept(id_propuesta, comando)
 
     def procesar_stop(self, args: list[str]):
         nodos = args
@@ -72,6 +116,12 @@ class Simulacion:
 
     def procesar_log(self, args: list[str]):
         pass
+
+    def get_nodo_by_name(self, name: str) -> Node | None:
+        for node in self.nodos:
+            if node.nombre == name:
+                return node
+        return None
 
     def are_all_nodes_valid(self, nodes: list[str]) -> bool:
         node_names = (node.nombre for node in self.nodos)
