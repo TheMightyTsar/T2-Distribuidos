@@ -26,6 +26,9 @@ class Simulacion:
                 node.set_proponente(True)
                 cant_proponentes_activos += 1
 
+        print("Proponentes activos después de ejecutar bully:", [nodo.nombre for nodo in self.get_proponentes_activos()])
+        print("Aceptantes activos después de ejecutar bully:", [nodo.nombre for nodo in self.get_aceptantes_activos()])
+
     def procesar_evento(self, evento: str, args: list[str]):
         if evento == "Prepare":
             self.procesar_prepare(args)
@@ -46,7 +49,11 @@ class Simulacion:
         """
         nombre_nodo, id_propuesta = args
         nodo = self.get_nodo_by_name(nombre_nodo)
+        if not nodo.esta_activo:
+            print(f"Nodo {nombre_nodo} no está activo. Ignorando evento Prepare.")
+            return
         if not nodo.es_proponente:
+            print(f"Nodo {nombre_nodo} no es proponente. Ignorando evento Prepare.")
             return
         id_propuesta = int(id_propuesta)
         nodo.empezar_prepare(id_propuesta)
@@ -68,6 +75,9 @@ class Simulacion:
         """
         nombre_nodo, id_propuesta, comando_que_quiere = args
         nodo = self.get_nodo_by_name(nombre_nodo)
+        if not nodo.esta_activo:
+            print(f"Nodo {nombre_nodo} no está activo. Ignorando evento Accept.")
+            return
         if not nodo.es_proponente:
             print(f"Nodo {nombre_nodo} no es proponente. Ignorando evento Accept.")
             return
@@ -103,6 +113,8 @@ class Simulacion:
         proponentes_activos = len(self.get_proponentes_activos())
         for nodo in self.nodos:
             if nodo.nombre in nodos:
+                if nodo.esta_activo:
+                    continue
                 nodo.esta_activo = True
 
                 if nodo.es_proponente:
@@ -121,13 +133,9 @@ class Simulacion:
                 cmd = nodo.comando_aceptado
                 votos_por_comando[cmd] = votos_por_comando.get(cmd, 0) + 1
 
-        print(f"Votos por comando: {votos_por_comando}")
-
         for cmd, votos in votos_por_comando.items():
             if votos > (len(aceptantes_activos) / 2):
                 self.ejecutar_comando(cmd)
-            else:
-                print(f"Comando {cmd} no alcanzó quorum con {votos} votos")
 
         for nodo in self.nodos:
             if nodo.esta_activo:
@@ -135,6 +143,8 @@ class Simulacion:
 
     def has_quorum(self, cantidad: int):
         cantidad_aceptantes_activos = len(self.get_aceptantes_activos())
+        print("Hay", cantidad_aceptantes_activos, "aceptantes activos. Se necesitan más de", cantidad_aceptantes_activos / 2, "aceptaciones para alcanzar quorum.")
+        print("Cantidad de aceptaciones recibidas:", cantidad)
         return cantidad > cantidad_aceptantes_activos / 2
 
     def get_aceptantes_activos(self):

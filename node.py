@@ -21,6 +21,7 @@ class Node:
     def set_proponente(self, status: bool):
         estado_viejo, self.es_proponente = self.es_proponente, status
         if estado_viejo != status:
+            print(f"Nodo {self.nombre} ahora es {'proponente' if self.es_proponente else 'aceptante'}.")
             self.resetear_estado()
 
     def resetear_estado(self):
@@ -68,12 +69,14 @@ class Node:
     # Aceptante
     def responder_prepare(self, id_propuesta: int):
         if not self.esta_activo:
+            print(f"Nodo {self.nombre} no está activo. Ignorando evento Prepare.")
             return False, None, None
 
-        if self.id_prepare_mas_alta is None or id_propuesta > self.id_prepare_mas_alta:
+        if self.id_prepare_mas_alta is None or id_propuesta >= self.id_prepare_mas_alta:
             self.id_prepare_mas_alta = id_propuesta
+            print(f"Nodo {self.nombre} acepta Prepare con id {id_propuesta}, {self.comando_aceptado}.")
             return True, self.id_aceptada, self.comando_aceptado
-
+        print(f"Nodo {self.nombre} rechaza Prepare con id {id_propuesta} porque tiene un id prepare más alto: {self.id_prepare_mas_alta}.")
         return False, None, None
 
     def responder_accept(self, id_propuesta: int, comando: str):
